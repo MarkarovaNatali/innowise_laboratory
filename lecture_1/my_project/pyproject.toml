@@ -1,0 +1,17 @@
+[project]
+name = "my-project"
+version = "0.1.0"
+description = "completing the first task"
+authors = [
+    {name = "Markarova Natalia",email = "Ska-angel@yandex.ru"}
+]
+readme = "README.md"
+requires-python = "colorama"
+dependencies = [
+    "colorama (>=0.4.6,<0.5.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
