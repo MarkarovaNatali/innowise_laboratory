@@ -1,6 +1,6 @@
-from fastapi import FastAPI, HTTPException
-from typing import Optional, List, Dict
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException, Path, Query
+from typing import Optional, List, Dict, Annotated
+from pydantic import BaseModel, Field
 
 app = FastAPI()
 
@@ -9,13 +9,13 @@ class Book(BaseModel):
     id: int
     title: str
     author: str
-    year: int
+    year: int = Field(..., ge=1500, le=2026)
 
 
 class BookCreate(BaseModel):
     title: str
     author: str
-    year: int
+    year: int = Field(..., ge=1500, le=2026)
 
 
 class BookUpdate(BaseModel):
@@ -33,7 +33,16 @@ books = [
 
 @app.post("/books/")
 async def add_a_new_book(book: BookCreate) -> Book:
-    new_book_id = max(b["id"] for b in books) + 1
+    """
+    Add a new book to the collection.
+
+    Args:
+        book (BookCreate): Data for creating a new book.
+
+    Returns:
+        Book: The newly added book.
+    """
+    new_book_id = max((b["id"] for b in books), default=0) + 1
     new_book = {"id": new_book_id, "title": book.title, "author": book.author, "year": book.year}
     books.append(new_book)
     return Book(**new_book)
@@ -41,11 +50,30 @@ async def add_a_new_book(book: BookCreate) -> Book:
 
 @app.get("/books/")
 async def get_all_books() -> List[Book]:
+    """
+    Retrieve all books from the collection.
+
+    Returns:
+        List[Book]: A list of all books.
+    """
     return [Book(**book) for book in books]
 
 
 @app.delete("/books/{book_id}")
-async def delete_a_book_by_id(book_id: int) -> Book:
+async def delete_a_book_by_id(book_id: Annotated[int, Path(..., title='The ID of the book we are deleting',
+                                                           ge=1)]) -> Book:
+    """
+    Delete a book by its ID.
+
+    Args:
+        book_id (int): The ID of the book to delete.
+
+    Returns:
+        Book: The deleted book.
+
+    Raises:
+        HTTPException: If the book is not found.
+    """
     for book in books:
         if book["id"] == book_id:
             books.remove(book)
@@ -54,7 +82,21 @@ async def delete_a_book_by_id(book_id: int) -> Book:
 
 
 @app.put("/books/{book_id}")
-async def update_book_details(book_id: int, book_update: BookUpdate) -> Book:
+async def update_book_details(book_id: Annotated[int, Path(..., title='The ID of the book we are updating', ge=1)],
+                              book_update: BookUpdate) -> Book:
+    """
+    Update details of a book by its ID.
+
+    Args:
+        book_id (int): The ID of the book to update.
+        book_update (BookUpdate): Fields to update.
+
+    Returns:
+        Book: The updated book.
+
+    Raises:
+        HTTPException: If the book is not found.
+    """
     for book in books:
         if book["id"] == book_id:
             if book_update.title is not None:
@@ -69,11 +111,21 @@ async def update_book_details(book_id: int, book_update: BookUpdate) -> Book:
 
 @app.get("/books/search/")
 async def search_books(
-        book_title: Optional[str] = None,
-        author: Optional[str] = None,
-        year: Optional[int] = None
-) -> Dict[str, Optional[Book]]:
-    # фильтруем список по всем переданным параметрам
+        book_title: Optional[str] = Query(None),
+        author: Optional[str] = Query(None),
+        year: Optional[int] = Query(None),
+) -> Dict[str, List[Book]]:
+    """
+    Search for books by title, author, or year.
+
+    Args:
+        book_title (Optional[str]): Filter by book title.
+        author (Optional[str]): Filter by author name.
+        year (Optional[int]): Filter by publication year.
+
+    Returns:
+        Dict[str, List[Book]]: A dictionary with search results.
+    """
     results = []
     for book in books:
         if book_title and book["title"] != book_title:
@@ -86,11 +138,23 @@ async def search_books(
     if results:
         return {"results": results}
     else:
-        return {"results": None}
+        return {"results": []}
 
 
 @app.get("/books/{book_id}/")
-async def get_book(book_id: int) -> Book:
+async def get_book(book_id: Annotated[int, Path(..., title='The ID of the book we are looking for', ge=1)]) -> Book:
+    """
+    Retrieve a single book by its ID.
+
+    Args:
+        book_id (int): The ID of the book to retrieve.
+
+    Returns:
+        Book: The requested book.
+
+    Raises:
+        HTTPException: If the book is not found.
+    """
     for book in books:
         if book["id"] == book_id:
             return Book(**book)
