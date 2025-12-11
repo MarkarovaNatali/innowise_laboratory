@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy.orm import Session
-from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Annotated
 
 from .models import Book
